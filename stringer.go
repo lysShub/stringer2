@@ -96,6 +96,7 @@ var (
 	trimprefix  = flag.String("trimprefix", "", "trim the `prefix` from the generated constant names")
 	linecomment = flag.Bool("linecomment", false, "use line comment text as printed text when present")
 	buildTags   = flag.String("tags", "", "comma-separated list of build tags to apply")
+	methodName  = flag.String("method", "String", "generated method name")
 )
 
 // Usage is a replacement usage function for the flags package.
@@ -643,9 +644,9 @@ func (g *Generator) buildOneRun(runs [][]Value, typeName string) {
 		lessThanZero = "i < 0 || "
 	}
 	if values[0].value == 0 { // Signed or unsigned, 0 is still 0.
-		g.Printf(stringOneRun, typeName, usize(len(values)), lessThanZero)
+		g.Printf(stringOneRun, typeName, usize(len(values)), lessThanZero, *methodName)
 	} else {
-		g.Printf(stringOneRunWithOffset, typeName, values[0].String(), usize(len(values)), lessThanZero)
+		g.Printf(stringOneRunWithOffset, typeName, values[0].String(), usize(len(values)), lessThanZero, *methodName)
 	}
 }
 
@@ -654,7 +655,8 @@ func (g *Generator) buildOneRun(runs [][]Value, typeName string) {
 //	[1]: type name
 //	[2]: size of index element (8 for uint8 etc.)
 //	[3]: less than zero check (for signed types)
-const stringOneRun = `func (i %[1]s) String() string {
+//	[4]: method name
+const stringOneRun = `func (i %[1]s) %[4]s() string {
 	if %[3]si >= %[1]s(len(_%[1]s_index)-1) {
 		return "%[1]s(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
@@ -667,9 +669,10 @@ const stringOneRun = `func (i %[1]s) String() string {
 //	[2]: lowest defined value for type, as a string
 //	[3]: size of index element (8 for uint8 etc.)
 //	[4]: less than zero check (for signed types)
+//	[5]: method name
 /*
  */
-const stringOneRunWithOffset = `func (i %[1]s) String() string {
+const stringOneRunWithOffset = `func (i %[1]s) %[5]s() string {
 	i -= %[2]s
 	if %[4]si >= %[1]s(len(_%[1]s_index)-1) {
 		return "%[1]s(" + strconv.FormatInt(int64(i + %[2]s), 10) + ")"
@@ -683,7 +686,7 @@ const stringOneRunWithOffset = `func (i %[1]s) String() string {
 func (g *Generator) buildMultipleRuns(runs [][]Value, typeName string) {
 	g.Printf("\n")
 	g.declareIndexAndNameVars(runs, typeName)
-	g.Printf("func (i %s) String() string {\n", typeName)
+	g.Printf("func (i %s) %s() string {\n", typeName, *methodName)
 	g.Printf("\tswitch {\n")
 	for i, values := range runs {
 		if len(values) == 1 {
@@ -723,11 +726,11 @@ func (g *Generator) buildMap(runs [][]Value, typeName string) {
 		}
 	}
 	g.Printf("}\n\n")
-	g.Printf(stringMap, typeName)
+	g.Printf(stringMap, typeName, *methodName)
 }
 
 // Argument to format is the type name.
-const stringMap = `func (i %[1]s) String() string {
+const stringMap = `func (i %[1]s) %[2]s() string {
 	if str, ok := _%[1]s_map[i]; ok {
 		return str
 	}
