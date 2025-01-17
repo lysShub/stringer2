@@ -14,8 +14,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"golang.org/x/tools/internal/testenv"
 )
 
 // Golden represents a test case.
@@ -449,8 +447,6 @@ func (i Token) String() string {
 `
 
 func TestGolden(t *testing.T) {
-	testenv.NeedsTool(t, "go")
-
 	dir := t.TempDir()
 	for _, test := range golden {
 		test := test
